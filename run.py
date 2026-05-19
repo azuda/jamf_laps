@@ -12,8 +12,8 @@ from urllib3.util.retry import Retry
 
 TESTING = True
 
-# ADMIN_ACC = "rundleadmin"
-ADMIN_ACC = "osxadmin"
+ADMIN_ACC = "rundleadmin"
+# ADMIN_ACC = "osxadmin"
 
 # ==================================================================================
 
@@ -74,7 +74,7 @@ def main():
 
   for c in computers["results"]:
     if TESTING:
-      if c["hardware"]["serialNumber"] != "JYH07G4DC0":
+      if c["hardware"]["serialNumber"] != "LF0W72L9FR":
         continue
       # count -= 1
       # if count < 1:
