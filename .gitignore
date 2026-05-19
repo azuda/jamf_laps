@@ -5,6 +5,7 @@ debug/
 
 .DS_STORE
 .env
+report.py
 
 *.csv
 *.xlsx
