@@ -12,6 +12,8 @@ import time
 import urllib3
 
 TESTING = False
+ADMIN_NAME = "osxadmin"
+# ADMIN_NAME = "rundleadmin"
 
 # ==================================================================================
 
@@ -80,15 +82,15 @@ def main():
       "sn": c["hardware"]["serialNumber"],
     }
 
-    # GET all admin accounts on this computer + extract rundleadmin if it exists
+    # GET all admin accounts on this computer + extract admin if it exists
     accs = jamf_get(f"/api/v2/local-admin-password/{c["general"]["managementId"]}/accounts", token).json()
-    rundleadmin = next((a for a in accs["results"] if a["username"] == "rundleadmin"), None)
-    if rundleadmin:
-      print(f"Grabbing rundleadmin password on {c["general"]["name"]} {c["hardware"]["serialNumber"]}...")
-      client_mgmt_id = rundleadmin["clientManagementId"]
-      guid = rundleadmin["guid"]
-      # GET rundleadmin password
-      response = jamf_get(f"/api/v2/local-admin-password/{client_mgmt_id}/account/{rundleadmin['username']}/{guid}/password", token)
+    admin = next((a for a in accs["results"] if a["username"] == ADMIN_NAME), None)
+    if admin:
+      print(f"Grabbing admin password on {c["general"]["name"]} {c["hardware"]["serialNumber"]}...")
+      client_mgmt_id = admin["clientManagementId"]
+      guid = admin["guid"]
+      # GET admin password
+      response = jamf_get(f"/api/v2/local-admin-password/{client_mgmt_id}/account/{admin['username']}/{guid}/password", token)
 
       # HTTP response handling
       if response.status_code == 200:
