@@ -8,7 +8,7 @@ import requests
 import time
 import urllib3
 
-ADMIN_ACC = "osxadmin"
+ADMIN_ACC = "rundleadmin"
 
 # =====================================================================================================
 
@@ -88,7 +88,14 @@ def main():
   print(f"Looking up [ {args.sn if args else 'None'} ]")
   computer = next((c for c in COMPUTERS["results"] if c["hardware"]["serialNumber"] == args.sn), None)
   response = lookup(computer, token, session)
-  print(f"\n{response.json()}")
+
+  # HTTP response handling + output result
+  if response.status_code == 200:
+    print(f"\n{response.json()}")
+  elif response.json().get("errors", [{}])[0].get("code") == "NOT_FOUND":
+    print("No LAPS password found")
+  else:
+    print(f"Unexpected error: {response.status_code}", response.json())
 
   # kill jamf token
   invalidate_token(access_token)
