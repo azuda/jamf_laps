@@ -6,7 +6,7 @@ import requests
 import time
 import urllib3
 
-ADMIN_ACC = "osxadmin"
+ADMIN_ACC = "rundleadmin"
 
 # =====================================================================================================
 
@@ -36,7 +36,6 @@ def make_session():
 # =====================================================================================================
 
 def lookup(c, token, session):
-  # https://developer.jamf.com/jamf-pro/reference/get_v2-local-admin-password-clientmanagementid-account-username-guid-password
   global ADMIN_ACC
   accs = jamf_get(f"/api/v2/local-admin-password/{c["general"]["managementId"]}/accounts", token, session).json()
   admin = next((a for a in accs["results"] if a["username"] == ADMIN_ACC), None)
@@ -47,6 +46,7 @@ def lookup(c, token, session):
     guid = admin["guid"]
 
     # GET admin password
+    # https://developer.jamf.com/jamf-pro/reference/get_v2-local-admin-password-clientmanagementid-account-username-guid-password
     return jamf_get(f"/api/v2/local-admin-password/{client_mgmt_id}/account/{username}/{guid}/password", token, session)
 
 # =====================================================================================================

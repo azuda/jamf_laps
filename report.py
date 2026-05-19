@@ -1,4 +1,4 @@
-# run.py
+# report.py
 
 import csv
 from jamf_credential import JAMF_URL, check_token_expiration, get_token, invalidate_token
