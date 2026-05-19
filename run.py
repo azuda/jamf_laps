@@ -1,42 +1,44 @@
 # run.py
 
-"""
-"""
-
 import csv
 from jamf_credential import JAMF_URL, check_token_expiration, get_token, invalidate_token
 import json
 import os
 import requests
+from requests.adapters import HTTPAdapter
 import time
 import urllib3
+from urllib3.util.retry import Retry
 
-TESTING = False
-ADMIN_NAME = "osxadmin"
-# ADMIN_NAME = "rundleadmin"
+TESTING = True
+
+# ADMIN_ACC = "rundleadmin"
+ADMIN_ACC = "osxadmin"
 
 # ==================================================================================
 
-def jamf_get(endpoint, token):
+def jamf_get(endpoint, token, session):
   token["t"], token["expiration"] = check_token_expiration(token["t"], token["expiration"])
   url = f"{JAMF_URL}{endpoint}"
   headers = {
     "accept": "application/json",
     "authorization": f"Bearer {token["t"]}"
   }
-  response = requests.get(url, headers=headers, verify=False)
+  response = session.get(url, headers=headers, verify=False)
   return response
 
-def jamf_patch(payload, endpoint, token):
-  token["t"], token["expiration"] = check_token_expiration(token["t"], token["expiration"])
-  url = f"{JAMF_URL}{endpoint}"
-  headers = {
-    "accept": "application/json",
-    "content-type": "application/json",
-    "authorization": f"Bearer {token["t"]}"
-  }
-  response = requests.patch(url, json=payload, headers=headers, verify=False)
-  return response
+def make_session():
+  session = requests.Session()
+  retry = Retry(
+    total=3,
+    backoff_factor=0.5,
+    status_forcelist=[429, 500, 502, 503, 504],
+    allowed_methods=["GET", "PATCH"],
+    raise_on_status=False,
+  )
+  adapter = HTTPAdapter(max_retries=retry)
+  session.mount("https://", adapter)
+  return session
 
 # ==================================================================================
 
@@ -55,8 +57,10 @@ def main():
   version = requests.get(version_url, headers=headers, verify=False)
   print("Jamf Pro version:", version.json()["version"])
 
+  session = make_session()
+
   # GET all computers
-  computers = jamf_get("/api/v3/computers-inventory?section=GENERAL&section=HARDWARE&page=0&page-size=2000&sort=id%3Aasc", token).json()
+  computers = jamf_get("/api/v3/computers-inventory?section=GENERAL&section=HARDWARE&page=0&page-size=2000&sort=id%3Aasc", token, session).json()
   # computers = jamf_get("/api/v3/computers-inventory?section=GENERAL&section=HARDWARE&section=LOCAL_USER_ACCOUNTS&page=0&page-size=2000&sort=id%3Aasc", token).json()
 
   # write for debug
@@ -70,7 +74,7 @@ def main():
 
   for c in computers["results"]:
     if TESTING:
-      if c["hardware"]["serialNumber"] != "LF0W72L9FR":
+      if c["hardware"]["serialNumber"] != "JYH07G4DC0":
         continue
       # count -= 1
       # if count < 1:
@@ -82,15 +86,18 @@ def main():
       "sn": c["hardware"]["serialNumber"],
     }
 
-    # GET all admin accounts on this computer + extract admin if it exists
-    accs = jamf_get(f"/api/v2/local-admin-password/{c["general"]["managementId"]}/accounts", token).json()
-    admin = next((a for a in accs["results"] if a["username"] == ADMIN_NAME), None)
+    # GET all admin accounts on this computer + extract admin acc if it exists
+    # https://developer.jamf.com/jamf-pro/reference/get_v2-local-admin-password-clientmanagementid-account-username-guid-password
+    accs = jamf_get(f"/api/v2/local-admin-password/{c["general"]["managementId"]}/accounts", token, session).json()
+    admin = next((a for a in accs["results"] if a["username"] == ADMIN_ACC), None)
     if admin:
-      print(f"Grabbing admin password on {c["general"]["name"]} {c["hardware"]["serialNumber"]}...")
+      print(f"Grabbing {ADMIN_ACC} password on {c["general"]["name"]} {c["hardware"]["serialNumber"]}...")
       client_mgmt_id = admin["clientManagementId"]
+      username = admin["username"]
       guid = admin["guid"]
       # GET admin password
-      response = jamf_get(f"/api/v2/local-admin-password/{client_mgmt_id}/account/{admin['username']}/{guid}/password", token)
+      response = jamf_get(f"/api/v2/local-admin-password/{client_mgmt_id}/account/{username}/{guid}/password", token, session)
+      # response = jamf_get(f"/api/v2/local-admin-password/{client_mgmt_id}/account/{ADMIN_ACC}/password", token)
 
       # HTTP response handling
       if response.status_code == 200:
@@ -109,7 +116,7 @@ def main():
   invalidate_token(access_token)
 
   # write to csv
-  with open("output.csv", "w", newline="") as f:
+  with open(f"{ADMIN_ACC}.csv", "w", newline="") as f:
     writer = csv.DictWriter(f, fieldnames=["jamf_id", "name", "sn", "password", "note"])
     writer.writeheader()
     for row in output:
