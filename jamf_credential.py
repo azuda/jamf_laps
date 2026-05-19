@@ -28,12 +28,6 @@ def invalidate_token(token):
   url = f"{JAMF_URL}/api/v1/auth/invalidate-token"
   headers = {"Authorization": f"Bearer {token}"}
   response = requests.post(url, headers=headers, verify=False)
-  if response.status_code == 204:
-    print("Token successfully invalidated")
-  elif response.status_code == 401:
-    print("Token already invalid")
-  else:
-    print("An unknown error occurred invalidating the token")
 
 # auto renew token if it expires in < 15 secs
 def check_token_expiration(access_token, token_expiration_epoch):
