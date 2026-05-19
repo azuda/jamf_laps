@@ -12,6 +12,7 @@ pip install -r requirements.txt
 deactivate
 echo "alias lookuplaps=\'$PWD/.venv/bin/python3 $PWD/lookup_laps.py\'" >> ~/.zshrc
 source ~/.zshrc
+gpg .env.gpg
 ```
 
 ## usage
