@@ -6,9 +6,13 @@ import json
 import os
 import requests
 import time
+import truststore
 import urllib3
 
-ADMIN_ACC = "rundleadmin"
+truststore.inject_into_ssl()
+
+# if testing lookup osxadmin else lookup rundleadmin
+TESTING = False
 
 # =====================================================================================================
 
@@ -19,7 +23,7 @@ def jamf_get(endpoint, token, session):
     "accept": "application/json",
     "authorization": f"Bearer {token["t"]}"
   }
-  response = session.get(url, headers=headers, verify=False)
+  response = session.get(url, headers=headers)
   return response
 
 def make_session():
@@ -37,12 +41,14 @@ def make_session():
 
 # =====================================================================================================
 
-def lookup(c, token, session):
-  global ADMIN_ACC
-  accs = jamf_get(f"/api/v2/local-admin-password/{c["general"]["managementId"]}/accounts", token, session).json()
-  admin = next((a for a in accs["results"] if a["username"] == ADMIN_ACC), None)
+def lookup(computer, token, session, username="rundleadmin"):
+  if TESTING:
+    username = "osxadmin"
+
+  accs = jamf_get(f"/api/v2/local-admin-password/{computer["general"]["managementId"]}/accounts", token, session).json()
+  admin = next((a for a in accs["results"] if a["username"] == username), None)
   if admin:
-    print(f"Grabbing {ADMIN_ACC} password on {c["general"]["name"]} {c["hardware"]["serialNumber"]}...")
+    print(f"Getting {username} password on {computer["general"]["name"]} {computer["hardware"]["serialNumber"]}...\n")
     client_mgmt_id = admin["clientManagementId"]
     username = admin["username"]
     guid = admin["guid"]
@@ -59,15 +65,11 @@ def main():
   parser.add_argument(
     "sn",
     metavar="serialnumber",
-    help="serial number of computer to lookup"
+    help="serial number of computer"
   )
   args = parser.parse_args()
 
-  # exit if no sn arg provided
-  if not args.sn:
-    return
-
-  # make jamf access token
+  # create jamf access token
   access_token, expires_in = get_token()
   token = {
     "t": access_token,
@@ -77,31 +79,34 @@ def main():
   # GET all computers from jamf
   session = make_session()
   COMPUTERS = jamf_get("/api/v3/computers-inventory?section=GENERAL&section=HARDWARE&page=0&page-size=2000&sort=id%3Aasc", token, session).json()
-
-  # write for debug
   if not os.path.exists("debug"):
     os.makedirs("debug")
   with open("debug/c.json", "w") as f:
     f.write(json.dumps(COMPUTERS, indent=2))
 
-  # lookup laps password for provided sn
+  # GET laps password on provided computer sn
   print(f"Looking up [ {args.sn if args else 'None'} ]")
   computer = next((c for c in COMPUTERS["results"] if c["hardware"]["serialNumber"] == args.sn), None)
+  if computer is None:
+    print(f"Computer {args.sn} not found")
+    return
   response = lookup(computer, token, session)
 
-  # HTTP response handling + output result
-  if response.status_code == 200:
-    print(f"\n{response.json()}")
-  elif response.json().get("errors", [{}])[0].get("code") == "NOT_FOUND":
-    print("No LAPS password found")
-  else:
-    print(f"Unexpected error: {response.status_code}", response.json())
-
-  # kill jamf token
+  # kill jamf access token
   invalidate_token(access_token)
+
+  # HTTP response handling + output result
+  try:
+    if response.status_code == 200:
+      print({response.json().get("password")})
+    elif response.json().get("errors", [{}])[0].get("code") == "NOT_FOUND":
+      print("No LAPS password found")
+    else:
+      print(f"Unexpected error: {response.status_code}", response.json())
+  except Exception as e:
+    print(f"Error parsing response: {e}", response)
 
 # =====================================================================================================
 
 if __name__ == "__main__":
-  urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
   main()

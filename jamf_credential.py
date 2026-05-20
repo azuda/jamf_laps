@@ -20,14 +20,14 @@ def get_token():
     "client_secret": CLIENT_SECRET
   }
   headers = {"Content-Type": "application/x-www-form-urlencoded"}
-  response = requests.post(url, data=data, headers=headers, verify=False)
+  response = requests.post(url, data=data, headers=headers)
   response.raise_for_status()
   return response.json()["access_token"], response.json()["expires_in"]
 
 def invalidate_token(token):
   url = f"{JAMF_URL}/api/v1/auth/invalidate-token"
   headers = {"Authorization": f"Bearer {token}"}
-  response = requests.post(url, headers=headers, verify=False)
+  response = requests.post(url, headers=headers)
 
 # auto renew token if it expires in < 15 secs
 def check_token_expiration(access_token, token_expiration_epoch):
