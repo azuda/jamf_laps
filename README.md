@@ -18,5 +18,5 @@ gpg .env.gpg
 ## usage
 
 ```bash
-lookuplaps -h
+getlaps -h
 ```
