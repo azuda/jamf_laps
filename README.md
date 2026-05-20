@@ -10,7 +10,7 @@ source .venv/bin/activate
 pip install --upgrade pip
 pip install -r requirements.txt
 deactivate
-echo "alias lookuplaps=\"$PWD/.venv/bin/python3 $PWD/lookup_laps.py\"" >> ~/.zshrc
+echo "alias getlaps=\"$PWD/.venv/bin/python3 $PWD/lookup_laps.py\"" >> ~/.zshrc
 source ~/.zshrc
 gpg .env.gpg
 ```
