@@ -59,7 +59,7 @@ def lookup(computer, token, session, username="rundleadmin"):
 
 def main():
   # create argparser
-  parser = argparse.ArgumentParser(description=__doc__)
+  parser = argparse.ArgumentParser(description=__doc__, prog="getlaps")
   parser.add_argument(
     "sn",
     metavar="serialnumber",
