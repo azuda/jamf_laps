@@ -16,16 +16,6 @@ TESTING = False
 
 # =====================================================================================================
 
-def jamf_get(endpoint, token, session):
-  token["t"], token["expiration"] = check_token_expiration(token["t"], token["expiration"])
-  url = f"{JAMF_URL}{endpoint}"
-  headers = {
-    "accept": "application/json",
-    "authorization": f"Bearer {token["t"]}"
-  }
-  response = session.get(url, headers=headers)
-  return response
-
 def make_session():
   session = requests.Session()
   retry = urllib3.util.retry.Retry(
@@ -39,12 +29,21 @@ def make_session():
   session.mount("https://", adapter)
   return session
 
-# =====================================================================================================
+def jamf_get(endpoint, token, session):
+  token["t"], token["expiration"] = check_token_expiration(token["t"], token["expiration"])
+  url = f"{JAMF_URL}{endpoint}"
+  headers = {
+    "accept": "application/json",
+    "authorization": f"Bearer {token["t"]}"
+  }
+  response = session.get(url, headers=headers)
+  return response
 
 def lookup(computer, token, session, username="rundleadmin"):
   if TESTING:
     username = "osxadmin"
-
+  # GET laps enabled accounts on computer
+  # https://developer.jamf.com/jamf-pro/reference/get_v2-local-admin-password-clientmanagementid-accounts
   accs = jamf_get(f"/api/v2/local-admin-password/{computer["general"]["managementId"]}/accounts", token, session).json()
   admin = next((a for a in accs["results"] if a["username"] == username), None)
   if admin:
@@ -52,15 +51,14 @@ def lookup(computer, token, session, username="rundleadmin"):
     client_mgmt_id = admin["clientManagementId"]
     username = admin["username"]
     guid = admin["guid"]
-
-    # GET laps password
+    # GET laps password of specific account
     # https://developer.jamf.com/jamf-pro/reference/get_v2-local-admin-password-clientmanagementid-account-username-guid-password
     return jamf_get(f"/api/v2/local-admin-password/{client_mgmt_id}/account/{username}/{guid}/password", token, session)
 
 # =====================================================================================================
 
 def main():
-  # setup argparser
+  # create argparser
   parser = argparse.ArgumentParser(description=__doc__)
   parser.add_argument(
     "sn",
@@ -76,16 +74,18 @@ def main():
     "expiration": int(time.time()) + expires_in,
   }
 
-  # GET all computers from jamf
+  # create retry session
   session = make_session()
+
+  # GET all computers from jamf
+  # https://developer.jamf.com/jamf-pro/reference/get_v3-computers-inventory
   COMPUTERS = jamf_get("/api/v3/computers-inventory?section=GENERAL&section=HARDWARE&page=0&page-size=2000&sort=id%3Aasc", token, session).json()
   if not os.path.exists("debug"):
     os.makedirs("debug")
   with open("debug/c.json", "w") as f:
     f.write(json.dumps(COMPUTERS, indent=2))
 
-  # GET laps password on provided computer sn
-  print(f"Looking up [ {args.sn if args else 'None'} ]")
+  # check if computer exists and lookup laps password
   computer = next((c for c in COMPUTERS["results"] if c["hardware"]["serialNumber"] == args.sn), None)
   if computer is None:
     print(f"Computer {args.sn} not found")

@@ -35,5 +35,5 @@ def check_token_expiration(access_token, token_expiration_epoch):
   if current_epoch > token_expiration_epoch - 15:
     access_token, expires_in = get_token()
     token_expiration_epoch = current_epoch + expires_in
-    print(f"Token valid for {expires_in} seconds")
+    # print(f"Token valid for {expires_in} seconds")
   return access_token, token_expiration_epoch
