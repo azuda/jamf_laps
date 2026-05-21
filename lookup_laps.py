@@ -80,10 +80,10 @@ def main():
   # GET all computers from jamf
   # https://developer.jamf.com/jamf-pro/reference/get_v3-computers-inventory
   COMPUTERS = jamf_get("/api/v3/computers-inventory?section=GENERAL&section=HARDWARE&page=0&page-size=2000&sort=id%3Aasc", token, session).json()
-  if not os.path.exists("debug"):
-    os.makedirs("debug")
-  with open("debug/c.json", "w") as f:
-    f.write(json.dumps(COMPUTERS, indent=2))
+  # if not os.path.exists("debug"):
+  #   os.makedirs("debug")
+  # with open("debug/c.json", "w") as f:
+  #   f.write(json.dumps(COMPUTERS, indent=2))
 
   # check if computer exists and lookup laps password
   computer = next((c for c in COMPUTERS["results"] if c["hardware"]["serialNumber"] == args.sn), None)
