@@ -1,8 +1,14 @@
 # jamf_laps
 
+## prereqs
+
+- git
+- homebrew
+
 ## setup
 
 ```bash
+brew install gnupg
 git clone https://github.com/azuda/jamf_laps.git
 cd jamf_laps
 python3 -m venv .venv
