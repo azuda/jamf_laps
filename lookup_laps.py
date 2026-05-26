@@ -86,9 +86,9 @@ def main():
   #   f.write(json.dumps(COMPUTERS, indent=2))
 
   # check if computer exists and lookup laps password
-  computer = next((c for c in COMPUTERS["results"] if c["hardware"]["serialNumber"] == args.sn), None)
+  computer = next((c for c in COMPUTERS["results"] if c["hardware"]["serialNumber"] == args.sn.upper()), None)
   if computer is None:
-    print(f"Computer {args.sn} not found")
+    print(f"Computer {args.sn.upper()} not found")
     return
   response = lookup(computer, token, session)
 
