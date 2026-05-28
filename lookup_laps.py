@@ -118,12 +118,12 @@ def main():
     # GET all computers from jamf
     # https://developer.jamf.com/jamf-pro/reference/get_v3-computers-inventory
     COMPUTERS = jamf_get("/api/v3/computers-inventory?section=GENERAL&section=HARDWARE&page=0&page-size=2000&sort=id%3Aasc", token, session).json()
-    with open("data/c.json", "w") as f:
+    with open(LOOKUP_PATH, "w") as f:
       f.write(json.dumps(COMPUTERS, indent=2))
     with open(TIMESTAMP_PATH, "w") as f:
       f.write(str(int(time.time())))
   else:
-    with open("data/c.json", "r") as f:
+    with open(LOOKUP_PATH, "r") as f:
       COMPUTERS = json.load(f)
 
   # sn search
