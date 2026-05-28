@@ -1,6 +1,7 @@
 __pycache__/
 .venv/
 .vscode/
+data/
 debug/
 
 .DS_STORE
@@ -8,4 +9,5 @@ debug/
 report.py
 
 *.csv
+*.timestamp
 *.xlsx
