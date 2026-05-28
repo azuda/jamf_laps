@@ -2,8 +2,10 @@
 
 ## prereqs
 
+- python 3.10 or newer
 - git
 - homebrew
+- rwx perms in script dir
 
 ## setup
 
