@@ -73,7 +73,7 @@ def lookup(computer, token, session, username="rundleadmin"):
 
 def is_sn(arg):
   # return arg.replace("-", "").isalnum() and " " not in arg and len(arg) >= 12
-  return bool(re.fullmatch(r"[A-Z0-9]{10,12}", arg))
+  return bool(re.fullmatch(r"[A-Z0-9]{10,12}", arg.upper()))
 
 def name_search(query, computers):
   query = query.lower()
@@ -98,9 +98,22 @@ def main():
   parser.add_argument(
     "computer",
     metavar="computer",
+    nargs="?",
     help="sn or name of computer"
   )
+  parser.add_argument(
+    "-r",
+    action="store_true",
+    help="refresh cached computer list"
+  )
   args = parser.parse_args()
+
+  if args.r:
+    if os.path.isfile(LOOKUP_PATH):
+      os.remove(LOOKUP_PATH)
+      print("Cleared cache")
+    if not args.computer:
+      return
 
   # create jamf access token
   access_token, expires_in = get_token()
