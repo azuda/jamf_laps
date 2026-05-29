@@ -23,6 +23,11 @@ TESTING = False
 # =====================================================================================================
 
 def query_check():
+  """
+  - check if we need to query jamf for all computers
+  - if timestamp file or lookup file dne, or if timestamp > 7d ago, return True
+  - else use existing lookup file, return False
+  """
   try:
     with open(TIMESTAMP_PATH, "r") as f:
       last_epoch = int(f.read().strip())
@@ -33,6 +38,9 @@ def query_check():
   return int(time.time()) - last_epoch > 604800 # 604800s == 7d
 
 def make_session():
+  """
+  - create retry requests session
+  """
   session = requests.Session()
   retry = urllib3.util.retry.Retry(
     total=3,
@@ -46,6 +54,9 @@ def make_session():
   return session
 
 def jamf_get(endpoint, token, session):
+  """
+  - GET request to jamf
+  """
   token["t"], token["expiration"] = check_token_expiration(token["t"], token["expiration"])
   url = f"{JAMF_URL}{endpoint}"
   headers = {
@@ -56,6 +67,9 @@ def jamf_get(endpoint, token, session):
   return response
 
 def lookup(computer, token, session, username="rundleadmin"):
+  """
+  - lookup laps password for username on specified computer
+  """
   if TESTING:
     username = "osxadmin"
   # GET laps enabled accounts on computer
@@ -72,14 +86,29 @@ def lookup(computer, token, session, username="rundleadmin"):
     return jamf_get(f"/api/v2/local-admin-password/{client_mgmt_id}/account/{username}/{guid}/password", token, session)
 
 def is_sn(arg):
-  # return arg.replace("-", "").isalnum() and " " not in arg and len(arg) >= 12
-  return bool(re.fullmatch(r"[A-Z0-9]{10,12}", arg.upper()))
+  """
+  - check if arg is a valid sn
+  """
+  return (
+    bool(re.fullmatch(r"[A-Za-z0-9]{10,12}", arg)) and  # 10-12 alphanum chars
+    (arg == arg.upper() or arg == arg.lower()) and      # all chars are the same case
+    any(c.isdigit() for c in arg)                       # contains at least 1 num
+  )
 
 def name_search(query, computers):
+  """
+  - search for query in computer names
+  - return a list of matches
+  """
   query = query.lower()
   return [ c for c in computers if query in c.get("general").get("name").lower() ]
 
 def handle_response(response):
+  """
+  - process http response from password lookup
+  - if found print laps password
+  - else print appropriate error message
+  """
   try:
     if response.status_code == 200:
       print(response.json().get("password"))
@@ -107,6 +136,10 @@ def main():
     help="refresh cached computer list"
   )
   args = parser.parse_args()
+
+  if not args.r and args.computer is None:
+    parser.print_help()
+    return
 
   if args.r:
     if os.path.isfile(LOOKUP_PATH):
