@@ -61,7 +61,7 @@ def jamf_get(endpoint, token, session):
   url = f"{JAMF_URL}{endpoint}"
   headers = {
     "accept": "application/json",
-    "authorization": f"Bearer {token["t"]}"
+    "authorization": f"Bearer {token['t']}"
   }
   response = session.get(url, headers=headers)
   return response
@@ -74,10 +74,10 @@ def lookup(computer, token, session, username="rundleadmin"):
     username = "osxadmin"
   # GET laps enabled accounts on computer
   # https://developer.jamf.com/jamf-pro/reference/get_v2-local-admin-password-clientmanagementid-accounts
-  accs = jamf_get(f"/api/v2/local-admin-password/{computer["general"]["managementId"]}/accounts", token, session).json()
+  accs = jamf_get(f"/api/v2/local-admin-password/{computer['general']['managementId']}/accounts", token, session).json()
   admin = next((a for a in accs["results"] if a["username"] == username), None)
   if admin:
-    print(f"Getting {username} password on {computer["general"]["name"]} {computer["hardware"]["serialNumber"]}...\n")
+    print(f"Getting {username} password on {computer['general']['name']} {computer['hardware']['serialNumber']}...\n")
     client_mgmt_id = admin.get("clientManagementId")
     username = admin.get("username")
     guid = admin.get("guid")
