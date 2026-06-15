@@ -90,10 +90,12 @@ def lookup(computer, token, session, username):
   - lookup laps password for username on specified computer
   - raise LookupError if no account is found
   """
-  accs = jamf_get(f"/api/v2/local-admin-password/{computer['general']['managementId']}/accounts", token, session).json()
+  accs_response = jamf_get(f"/api/v2/local-admin-password/{computer['general']['managementId']}/accounts", token, session)
+  accs_response.raise_for_status()
+  accs = accs_response.json()
   admin = next((a for a in accs["results"] if a["username"] == username), None)
   if admin is None:
-    raise LookupError(f"Account '{username}' has no LAPS entry on {computer['general']['name']} {computer['hardware']['serialNumber']})")
+    raise LookupError(f"Account '{username}' has no LAPS entry on {computer['general']['name']} {computer['hardware']['serialNumber']}")
   print(f"Getting {username} password on {computer['general']['name']} {computer['hardware']['serialNumber']}...\n")
   return jamf_get(
     f"/api/v2/local-admin-password/{admin['clientManagementId']}"
@@ -208,7 +210,7 @@ def main():
       return
 
     # name search
-    matches = name_search(args.computer, computers.get("results"))
+    matches = name_search(args.computer, computers.get("results", []))
     if not matches:
       print(f"No computers found matching '{args.computer}'")
       return
